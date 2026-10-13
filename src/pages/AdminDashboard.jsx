@@ -2,18 +2,17 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-function AdminDashboard() {
+const API_URL = import.meta.env.VITE_API_URL;
 
+function AdminDashboard() {
     const navigate = useNavigate();
 
     const [complaints, setComplaints] = useState([]);
     const [loading, setLoading] = useState(true);
-
     const [status, setStatus] = useState({});
     const [remarks, setRemarks] = useState({});
 
     useEffect(() => {
-
         const user = JSON.parse(localStorage.getItem("user"));
 
         if (!user || user.role !== "ADMIN") {
@@ -22,39 +21,38 @@ function AdminDashboard() {
         }
 
         fetchComplaints();
-
     }, [navigate]);
 
-
+    // Fetch all complaints from the backend
     const fetchComplaints = async () => {
-
         try {
-
             const response = await axios.get(
-                "http://localhost:8080/api/complaints"
+                `${API_URL}/api/complaints`
             );
 
             setComplaints(response.data);
-
         } catch (error) {
-
             console.error("Error fetching complaints:", error);
-            alert("Failed to load complaints.");
 
+            if (error.response) {
+                alert(
+                    `Failed to load complaints. Status: ${error.response.status}`
+                );
+            } else {
+                alert(
+                    "Cannot connect to backend. Check the API URL, backend status, and CORS settings."
+                );
+            }
         } finally {
-
             setLoading(false);
-
         }
     };
 
-
+    // Update complaint status and admin remarks
     const handleUpdate = async (id) => {
-
         try {
-
             await axios.put(
-                `http://localhost:8080/api/complaints/${id}/status`,
+                `${API_URL}/api/complaints/${id}/status`,
                 {
                     status: status[id] || "PENDING",
                     adminRemarks: remarks[id] || ""
@@ -63,47 +61,43 @@ function AdminDashboard() {
 
             alert("Complaint updated successfully!");
 
-            fetchComplaints();
-
+            await fetchComplaints();
         } catch (error) {
-
             console.error("Update error:", error);
 
             if (error.response) {
                 alert(
-                    "Failed to update complaint.\n" +
+                    "Failed to update complaint: " +
                     JSON.stringify(error.response.data)
                 );
             } else {
-                alert("Cannot connect to backend.");
+                alert(
+                    "Cannot connect to backend. Check the API URL and CORS settings."
+                );
             }
         }
     };
 
-
+    // Logout admin
     const handleLogout = () => {
-
         localStorage.removeItem("user");
-
         navigate("/login");
-
     };
 
-
+    // Dashboard statistics
     const totalComplaints = complaints.length;
 
     const pendingComplaints = complaints.filter(
-        complaint => complaint.status === "PENDING"
+        (complaint) => complaint.status === "PENDING"
     ).length;
 
     const inProgressComplaints = complaints.filter(
-        complaint => complaint.status === "IN_PROGRESS"
+        (complaint) => complaint.status === "IN_PROGRESS"
     ).length;
 
     const resolvedComplaints = complaints.filter(
-        complaint => complaint.status === "RESOLVED"
+        (complaint) => complaint.status === "RESOLVED"
     ).length;
-
 
     if (loading) {
         return (
@@ -113,15 +107,10 @@ function AdminDashboard() {
         );
     }
 
-
     return (
-
         <div style={styles.page}>
-
             {/* HEADER */}
-
             <div style={styles.header}>
-
                 <div>
                     <h1 style={styles.title}>
                         Admin Dashboard
@@ -138,21 +127,16 @@ function AdminDashboard() {
                 >
                     Logout
                 </button>
-
             </div>
 
-
             {/* STATISTICS */}
-
             <div style={styles.statsContainer}>
-
                 <div style={styles.statCard}>
                     <h3>Total Complaints</h3>
                     <p style={styles.statNumber}>
                         {totalComplaints}
                     </p>
                 </div>
-
 
                 <div style={styles.statCard}>
                     <h3>Pending</h3>
@@ -161,7 +145,6 @@ function AdminDashboard() {
                     </p>
                 </div>
 
-
                 <div style={styles.statCard}>
                     <h3>In Progress</h3>
                     <p style={styles.statNumber}>
@@ -169,45 +152,33 @@ function AdminDashboard() {
                     </p>
                 </div>
 
-
                 <div style={styles.statCard}>
                     <h3>Resolved</h3>
                     <p style={styles.statNumber}>
                         {resolvedComplaints}
                     </p>
                 </div>
-
             </div>
 
-
             {/* COMPLAINTS */}
-
             <div style={styles.content}>
-
                 <h2 style={styles.heading}>
                     All Complaints
                 </h2>
 
-
                 {complaints.length === 0 ? (
-
                     <div style={styles.empty}>
                         No complaints available.
                     </div>
-
                 ) : (
-
                     complaints.map((complaint) => (
-
                         <div
                             key={complaint.id}
                             style={styles.complaintCard}
                         >
-
                             <div style={styles.complaintHeader}>
-
                                 <h2>
-                                    {complaint.title}
+                                    {complaint.title || `Complaint #${complaint.id}`}
                                 </h2>
 
                                 <span
@@ -222,73 +193,61 @@ function AdminDashboard() {
                                 >
                                     {complaint.status}
                                 </span>
-
                             </div>
-
 
                             <p>
                                 <strong>Complaint ID:</strong>{" "}
                                 {complaint.id}
                             </p>
 
-
                             <p>
                                 <strong>Description:</strong>{" "}
                                 {complaint.description}
                             </p>
-
 
                             <p>
                                 <strong>Category:</strong>{" "}
                                 {complaint.category}
                             </p>
 
-
                             <p>
                                 <strong>Location:</strong>{" "}
                                 {complaint.location}
                             </p>
 
-
                             <p>
                                 <strong>User:</strong>{" "}
-                                {complaint.user?.name}
+                                {complaint.user?.name || "N/A"}
                             </p>
-
 
                             <p>
                                 <strong>Email:</strong>{" "}
-                                {complaint.user?.email}
+                                {complaint.user?.email || "N/A"}
                             </p>
-
 
                             <hr />
 
+                            <h3>Update Complaint</h3>
 
-                            <h3>
-                                Update Complaint
-                            </h3>
-
-
-                            <label>
+                            <label htmlFor={`status-${complaint.id}`}>
                                 Status
                             </label>
 
                             <select
+                                id={`status-${complaint.id}`}
                                 value={
-                                    status[complaint.id] ||
-                                    complaint.status
+                                    status[complaint.id] ??
+                                    complaint.status ??
+                                    "PENDING"
                                 }
                                 onChange={(e) =>
-                                    setStatus({
-                                        ...status,
-                                        [complaint.id]:
-                                            e.target.value
-                                    })
+                                    setStatus((previous) => ({
+                                        ...previous,
+                                        [complaint.id]: e.target.value
+                                    }))
                                 }
                                 style={styles.input}
                             >
-
                                 <option value="PENDING">
                                     PENDING
                                 </option>
@@ -300,15 +259,14 @@ function AdminDashboard() {
                                 <option value="RESOLVED">
                                     RESOLVED
                                 </option>
-
                             </select>
 
-
-                            <label>
+                            <label htmlFor={`remarks-${complaint.id}`}>
                                 Admin Remarks
                             </label>
 
                             <textarea
+                                id={`remarks-${complaint.id}`}
                                 placeholder="Enter remarks..."
                                 value={
                                     remarks[complaint.id] ??
@@ -316,40 +274,29 @@ function AdminDashboard() {
                                     ""
                                 }
                                 onChange={(e) =>
-                                    setRemarks({
-                                        ...remarks,
-                                        [complaint.id]:
-                                            e.target.value
-                                    })
+                                    setRemarks((previous) => ({
+                                        ...previous,
+                                        [complaint.id]: e.target.value
+                                    }))
                                 }
                                 style={styles.textarea}
                             />
 
-
                             <button
-                                onClick={() =>
-                                    handleUpdate(complaint.id)
-                                }
+                                onClick={() => handleUpdate(complaint.id)}
                                 style={styles.updateButton}
                             >
                                 Update Complaint
                             </button>
-
                         </div>
-
                     ))
-
                 )}
-
             </div>
-
         </div>
     );
 }
 
-
 const styles = {
-
     page: {
         minHeight: "100vh",
         backgroundColor: "#f4f6f8",
@@ -387,8 +334,7 @@ const styles = {
 
     statsContainer: {
         display: "grid",
-        gridTemplateColumns:
-            "repeat(auto-fit, minmax(200px, 1fr))",
+        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
         gap: "20px",
         padding: "30px 40px"
     },
@@ -427,6 +373,7 @@ const styles = {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
+        gap: "15px",
         marginBottom: "15px"
     },
 
@@ -456,6 +403,7 @@ const styles = {
         display: "block",
         width: "100%",
         maxWidth: "500px",
+        boxSizing: "border-box",
         padding: "11px",
         marginTop: "8px",
         marginBottom: "18px",
@@ -467,6 +415,7 @@ const styles = {
         display: "block",
         width: "100%",
         maxWidth: "500px",
+        boxSizing: "border-box",
         minHeight: "90px",
         padding: "11px",
         marginTop: "8px",
@@ -498,7 +447,6 @@ const styles = {
         textAlign: "center",
         fontSize: "20px"
     }
-
 };
 
 export default AdminDashboard;

@@ -2,21 +2,20 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-function Login() {
+const API_URL = import.meta.env.VITE_API_URL;
 
+function Login() {
     const navigate = useNavigate();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
     const handleLogin = async (e) => {
-
         e.preventDefault();
 
         try {
-
             const response = await axios.post(
-                "http://localhost:8080/api/users/login",
+                `${API_URL}/api/users/login`,
                 {
                     email: email,
                     password: password
@@ -25,43 +24,41 @@ function Login() {
 
             const user = response.data;
 
-            // Save logged-in user
             localStorage.setItem("user", JSON.stringify(user));
 
             alert("Login successful!");
 
-            // Redirect based on role
             if (user.role === "ADMIN") {
-
                 navigate("/admin");
-
             } else {
-
                 navigate("/user");
-
             }
 
         } catch (error) {
-
             console.error("Login error:", error);
 
             if (error.response) {
-                alert("Invalid email or password!");
+                alert(
+                    `Login failed: ${
+                        error.response.data?.message ||
+                        error.response.statusText ||
+                        "Check your email and password"
+                    }`
+                );
             } else {
-                alert("Cannot connect to backend!");
+                alert(
+                    "Cannot connect to backend. Check backend URL, CORS, and Render logs."
+                );
             }
         }
     };
 
     return (
         <div>
-
             <h1>Online Complaint Management System</h1>
-
             <h2>Login</h2>
 
             <form onSubmit={handleLogin}>
-
                 <div>
                     <input
                         type="email"
@@ -86,10 +83,7 @@ function Login() {
 
                 <br />
 
-                <button type="submit">
-                    Login
-                </button>
-
+                <button type="submit">Login</button>
             </form>
 
             <br />
@@ -97,7 +91,6 @@ function Login() {
             <button onClick={() => navigate("/register")}>
                 Create Account
             </button>
-
         </div>
     );
 }

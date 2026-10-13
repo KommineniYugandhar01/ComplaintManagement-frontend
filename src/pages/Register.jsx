@@ -2,8 +2,9 @@ import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-function Register() {
+const API_URL = import.meta.env.VITE_API_URL;
 
+function Register() {
     const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
@@ -12,6 +13,8 @@ function Register() {
         password: "",
         role: "USER"
     });
+
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
         setFormData({
@@ -23,34 +26,54 @@ function Register() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (!API_URL) {
+            alert("Backend URL is not configured.");
+            return;
+        }
+
+        setLoading(true);
+
         try {
             const response = await axios.post(
-                "http://localhost:8080/api/users/register",
+                `${API_URL}/api/users/register`,
                 formData
             );
 
-            console.log(response.data);
+            console.log("Registration response:", response.data);
 
             alert("Registration successful!");
 
             navigate("/login");
-
         } catch (error) {
-            console.error(error);
+            console.error(
+                "Registration error:",
+                error.response?.data || error.message
+            );
 
-            alert("Registration failed!");
+            if (error.response) {
+                const message =
+                    error.response.data?.message ||
+                    error.response.data?.error ||
+                    "Please check your registration details.";
+
+                alert(`Registration failed: ${message}`);
+            } else {
+                alert(
+                    "Cannot connect to backend. Check the backend URL, server status, and CORS settings."
+                );
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
         <div className="container">
-
             <h1>Online Complaint Management System</h1>
 
             <h2>Register</h2>
 
             <form onSubmit={handleSubmit}>
-
                 <input
                     type="text"
                     name="name"
@@ -78,10 +101,9 @@ function Register() {
                     required
                 />
 
-                <button type="submit">
-                    Register
+                <button type="submit" disabled={loading}>
+                    {loading ? "Registering..." : "Register"}
                 </button>
-
             </form>
 
             <p>Already have an account?</p>
@@ -89,7 +111,6 @@ function Register() {
             <button onClick={() => navigate("/login")}>
                 Login
             </button>
-
         </div>
     );
 }

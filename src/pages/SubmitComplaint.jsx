@@ -1,39 +1,54 @@
+
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-function SubmitComplaint() {
+// Render backend URL
+const API_URL = import.meta.env.VITE_API_URL;
 
+function SubmitComplaint() {
     const navigate = useNavigate();
 
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [category, setCategory] = useState("Electrical");
     const [location, setLocation] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
-
         e.preventDefault();
 
-        const user = JSON.parse(localStorage.getItem("user"));
+        let user;
 
-        if (!user) {
+        try {
+            user = JSON.parse(localStorage.getItem("user"));
+        } catch {
+            user = null;
+        }
+
+        if (!user || !user.id) {
             alert("Please login first!");
             navigate("/login");
             return;
         }
 
+        if (!API_URL) {
+            alert("Backend URL is not configured!");
+            return;
+        }
+
         const complaint = {
-            title: title,
-            description: description,
-            category: category,
-            location: location
+            title,
+            description,
+            category,
+            location
         };
 
         try {
+            setLoading(true);
 
             const response = await axios.post(
-                `http://localhost:8080/api/complaints/user/${user.id}`,
+                `${API_URL}/api/complaints/user/${user.id}`,
                 complaint
             );
 
@@ -47,40 +62,31 @@ function SubmitComplaint() {
             setLocation("");
 
             navigate("/my-complaints");
-
         } catch (error) {
-
             console.error("Complaint submission error:", error);
 
             if (error.response) {
-
-                console.log(
-                    "Backend response:",
-                    error.response.data
-                );
-
                 alert(
                     "Failed to submit complaint!\n" +
                     JSON.stringify(error.response.data)
                 );
-
             } else {
-
-                alert("Cannot connect to backend!");
-
+                alert(
+                    "Cannot connect to backend. Check your Render URL, CORS settings, and backend status."
+                );
             }
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
         <div>
-
             <h1>Online Complaint Management System</h1>
 
             <h2>Submit Complaint</h2>
 
             <form onSubmit={handleSubmit}>
-
                 <div>
                     <input
                         type="text"
@@ -113,29 +119,12 @@ function SubmitComplaint() {
                             setCategory(e.target.value)
                         }
                     >
-                        <option value="Electrical">
-                            Electrical
-                        </option>
-
-                        <option value="Cleaning">
-                            Cleaning
-                        </option>
-
-                        <option value="Water">
-                            Water
-                        </option>
-
-                        <option value="Classroom">
-                            Classroom
-                        </option>
-
-                        <option value="Hostel">
-                            Hostel
-                        </option>
-
-                        <option value="Other">
-                            Other
-                        </option>
+                        <option value="Electrical">Electrical</option>
+                        <option value="Cleaning">Cleaning</option>
+                        <option value="Water">Water</option>
+                        <option value="Classroom">Classroom</option>
+                        <option value="Hostel">Hostel</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
 
@@ -155,9 +144,11 @@ function SubmitComplaint() {
 
                 <br />
 
-                <button type="submit">
-                    Submit Complaint
+                <button type="submit" disabled={loading}>
+                    {loading ? "Submitting..." : "Submit Complaint"}
                 </button>
+
+                {" "}
 
                 <button
                     type="button"
@@ -165,9 +156,7 @@ function SubmitComplaint() {
                 >
                     Back
                 </button>
-
             </form>
-
         </div>
     );
 }
